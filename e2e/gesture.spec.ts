@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { openGallery } from "./gallery"
 
 test.use({
   launchOptions: {
@@ -21,7 +22,7 @@ test.describe("电脑端摄像头手势", () => {
     page.on("request", (request) => {
       if (request.url().includes("/mediapipe/")) assets.push(request.url())
     })
-    await page.goto("/")
+    await openGallery(page)
     await expect(page.getByRole("button", { name: "开启手势翻页" })).toBeVisible()
     await expect(page.getByRole("radiogroup", { name: "手势翻页方式" })).toBeVisible()
     await expect(page.getByRole("radio", { name: "单次翻页" })).toBeChecked()
@@ -78,7 +79,7 @@ test.describe("电脑端摄像头手势", () => {
     await page.addInitScript(() => {
       navigator.mediaDevices.getUserMedia = async () => { throw new DOMException("denied", "NotAllowedError") }
     })
-    await page.goto("/")
+    await openGallery(page)
     await page.getByRole("button", { name: "开启手势翻页" }).click()
     await expect(page.getByRole("alert").filter({ hasText: "摄像头权限被拒绝" })).toBeVisible()
     await page.getByRole("button", { name: /下一张/ }).click()
@@ -88,7 +89,7 @@ test.describe("电脑端摄像头手势", () => {
 
 test("手机端不显示手势开关", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile", "只检查手机布局")
-  await page.goto("/")
+  await openGallery(page)
   await expect(page.getByRole("button", { name: "开启手势翻页" })).toBeHidden()
   await expect(page.getByRole("radiogroup", { name: "手势翻页方式" })).toBeHidden()
 })

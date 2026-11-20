@@ -37,6 +37,8 @@ beforeEach(() => {
 
 function setupGallery() {
   render(<HomePage />)
+  const start = screen.queryByRole("button", { name: "开始" })
+  if (start) fireEvent.click(start)
   return {
     viewport: screen.getByRole("region", { name: "塔罗牌画廊" }),
     previous: screen.getByRole("button", { name: /上一张/ }),
