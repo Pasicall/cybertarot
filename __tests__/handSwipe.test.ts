@@ -37,13 +37,13 @@ test("首次入镜、离开后再入镜和采样中断必须先居中", () => {
   }
   centered(tracker, 210)
   tracker.update(null, 490, 640, 480)
-  expect(tracker.update({ x: 0.8, y: 0.5 }, 560, 640, 480)).toBeNull()
-  expect(tracker.update({ x: 0.2, y: 0.5 }, 630, 640, 480)).toBeNull()
-  centered(tracker, 700)
-  expect(tracker.update({ x: 0.1, y: 0.5 }, 1300, 640, 480)).toBeNull()
+  expect(tracker.update({ x: 0.8, y: 0.5 }, 620, 640, 480)).toBeNull()
+  expect(tracker.update({ x: 0.2, y: 0.5 }, 690, 640, 480)).toBeNull()
+  centered(tracker, 760)
+  expect(tracker.update({ x: 0.1, y: 0.5 }, 1420, 640, 480)).toBeNull()
 })
 
-test("轻微抖动、竖直移动和超过 400ms 的慢移不会翻页", () => {
+test("轻微抖动、竖直移动和超过 500ms 的慢移不会翻页", () => {
   for (const positions of [
     [{ x: 0.51, y: 0.5 }, { x: 0.48, y: 0.5 }, { x: 0.52, y: 0.5 }],
     [{ x: 0.6, y: 0.7 }, { x: 0.75, y: 0.95 }, { x: 0.8, y: 1 }],
@@ -57,7 +57,7 @@ test("轻微抖动、竖直移动和超过 400ms 的慢移不会翻页", () => {
   const tracker = new HandSwipeTracker()
   centered(tracker)
   for (let i = 1; i <= 12; i++) {
-    expect(tracker.update({ x: 0.5 - i * 0.025, y: 0.5 }, 210 + 70 * i, 640, 480)).toBeNull()
+    expect(tracker.update({ x: 0.5 - i * 0.02, y: 0.5 }, 210 + 90 * i, 640, 480)).toBeNull()
   }
 })
 
@@ -69,9 +69,9 @@ test("横纵位移按像素比例判定，且至少收到三帧", () => {
 })
 
 test.each([
-  ["left", [0.435, 0.37, 0.35]],
-  ["right", [0.565, 0.63, 0.65]],
-] as const)("较短的 %s 挥手超过 14%% 后即可触发", (direction, xs) => {
+  ["left", [0.45, 0.41, 0.38]],
+  ["right", [0.55, 0.59, 0.62]],
+] as const)("较短的 %s 挥手超过 11%% 后即可触发", (direction, xs) => {
   const tracker = new HandSwipeTracker()
   centered(tracker)
   expect(tracker.update({ x: xs[0], y: 0.5 }, 210, 640, 480)).toBeNull()
@@ -81,13 +81,13 @@ test.each([
 
 test.each([
   ["left", 0.3], ["right", 0.3], ["left", 0.5], ["right", 0.5],
-] as const)("%s 从 x=%s 起手，在恰好 14%% 的边界不会因浮点误差提前触发", (direction, origin) => {
+] as const)("%s 从 x=%s 起手，在恰好 11%% 的边界不会因浮点误差提前触发", (direction, origin) => {
   const tracker = new HandSwipeTracker()
   const mirror = (x: number) => direction === "left" ? x : 1 - x
   for (const time of [0, 70, 140]) tracker.update({ x: mirror(origin), y: 0.5 }, time, 640, 480)
-  expect(tracker.update({ x: mirror(origin - 0.07), y: 0.5 }, 210, 640, 480)).toBeNull()
-  expect(tracker.update({ x: mirror(origin - 0.14), y: 0.5 }, 280, 640, 480)).toBeNull()
-  expect(tracker.update({ x: mirror(origin - 0.15), y: 0.5 }, 350, 640, 480)).toBe(direction)
+  expect(tracker.update({ x: mirror(origin - 0.055), y: 0.5 }, 210, 640, 480)).toBeNull()
+  expect(tracker.update({ x: mirror(origin - 0.11), y: 0.5 }, 280, 640, 480)).toBeNull()
+  expect(tracker.update({ x: mirror(origin - 0.12), y: 0.5 }, 350, 640, 480)).toBe(direction)
 })
 
 test("横移约为纵移 1.64 倍的斜向挥手可以触发", () => {
@@ -107,11 +107,11 @@ test.each([0.27, 0.73])("可以在放宽后的中间区域 x=%s 停稳再挥手"
   expect(tracker.update({ x: x + 2 * step, y: 0.5 }, 240, 640, 480)).toBe(x < 0.5 ? "left" : "right")
 })
 
-test.each([99, 100])("停稳 %sms 时严格遵守 100ms 的解锁条件", (duration) => {
+test.each([79, 80])("停稳 %sms 时严格遵守 80ms 的解锁条件", (duration) => {
   const tracker = new HandSwipeTracker()
   for (const time of [0, 50, duration]) tracker.update({ x: 0.27, y: 0.5 }, time, 640, 480)
   expect(tracker.update({ x: 0.19, y: 0.5 }, duration + 70, 640, 480)).toBeNull()
-  expect(tracker.update({ x: 0.11, y: 0.5 }, duration + 140, 640, 480)).toBe(duration >= 100 ? "left" : null)
+  expect(tracker.update({ x: 0.11, y: 0.5 }, duration + 140, 640, 480)).toBe(duration >= 80 ? "left" : null)
 })
 
 test("漏一帧恢复时不连接旧轨迹，保留就绪状态且重新收集三帧", () => {
@@ -124,13 +124,13 @@ test("漏一帧恢复时不连接旧轨迹，保留就绪状态且重新收集�
   expect(tracker.update({ x: 0.69, y: 0.5 }, 490, 640, 480)).toBe("left")
 })
 
-test.each([150, 151])("恢复时距上次有效识别 %sms，超过 150ms 才要求回中", (gap) => {
+test.each([249, 250])("恢复时距上次有效识别 %sms，超过 250ms 才要求回中", (gap) => {
   const tracker = new HandSwipeTracker()
   centered(tracker)
   tracker.update(null, 210, 640, 480)
   expect(tracker.update({ x: 0.85, y: 0.5 }, 140 + gap, 640, 480)).toBeNull()
   expect(tracker.update({ x: 0.77, y: 0.5 }, 210 + gap, 640, 480)).toBeNull()
-  expect(tracker.update({ x: 0.69, y: 0.5 }, 280 + gap, 640, 480)).toBe(gap <= 150 ? "left" : null)
+  expect(tracker.update({ x: 0.69, y: 0.5 }, 280 + gap, 640, 480)).toBe(gap <= 250 ? "left" : null)
 })
 
 test("连续漏帧不会续期容错时间，长时间丢手后须重新回中", () => {
@@ -196,16 +196,18 @@ test("回正途中短暂停顿或轻微过冲仍保持锁定", () => {
 test.each([
   ["left", 0.42, 0.34],
   ["right", 0.58, 0.66],
-] as const)("回到原位停稳 180ms 后可以有意再次 %s 挥手", (direction, middle, end) => {
+] as const)("回到原位停稳 150ms 后可以有意再次 %s 挥手", (direction, middle, end) => {
   const tracker = new HandSwipeTracker()
   centered(tracker)
   tracker.update({ x: 0.42, y: 0.5 }, 210, 640, 480)
   expect(tracker.update({ x: 0.34, y: 0.5 }, 280, 640, 480)).toBe("left")
-  for (const time of [350, 420, 490, 529]) {
+  for (const time of [350, 420, 490]) {
     expect(tracker.update({ x: 0.5, y: 0.5 }, time, 640, 480)).toBeNull()
     expect(tracker.guide).toBe("settling")
   }
-  expect(tracker.update({ x: 0.5, y: 0.5 }, 530, 640, 480)).toBeNull()
+  expect(tracker.update({ x: 0.5, y: 0.5 }, 499, 640, 480)).toBeNull()
+  expect(tracker.guide).toBe("settling")
+  expect(tracker.update({ x: 0.5, y: 0.5 }, 500, 640, 480)).toBeNull()
   expect(tracker.guide).toBe("ready")
   expect(tracker.update({ x: middle, y: 0.5 }, 600, 640, 480)).toBeNull()
   expect(tracker.update({ x: end, y: 0.5 }, 670, 640, 480)).toBe(direction)
@@ -270,29 +272,29 @@ describe("停留连翻", () => {
     expect(tracker.guide).toBe("returning")
   })
 
-  test.each(sides)("$direction：450ms 翻第二张，随后每 650ms 翻一张", ({ direction, side }) => {
+  test.each(sides)("$direction：280ms 翻第二张，随后每 400ms 翻一张", ({ direction, side }) => {
     const tracker = swipe(direction, side)
     expect(tracker.guide).toBe(`holding-${direction}`)
-    expect(hold(tracker, side, 280, 729)).toEqual([])
-    expect(tracker.update({ x: side, y: 0.5 }, 730, 640, 480)).toBe(direction)
+    expect(hold(tracker, side, 280, 559)).toEqual([])
+    expect(tracker.update({ x: side, y: 0.5 }, 560, 640, 480)).toBe(direction)
     expect(tracker.guide).toBe(`repeating-${direction}`)
-    expect(hold(tracker, side, 730, 1379)).toEqual([])
-    expect(tracker.update({ x: side, y: 0.5 }, 1380, 640, 480)).toBe(direction)
-    expect(tracker.update({ x: side, y: 0.5 }, 1381, 640, 480)).toBeNull()
+    expect(hold(tracker, side, 560, 959)).toEqual([])
+    expect(tracker.update({ x: side, y: 0.5 }, 960, 640, 480)).toBe(direction)
+    expect(tracker.update({ x: side, y: 0.5 }, 961, 640, 480)).toBeNull()
   })
 
   test.each(sides)("$direction：侧边轻微回摆不应中断连续翻页", ({ direction }) => {
     const mirror = (x: number) => direction === "left" ? x : 1 - x
     const tracker = swipe(direction, mirror(0.24))
-    for (const [index, time] of [350, 420, 490, 560, 630, 700].entries()) {
+    for (const [index, time] of [350, 420, 490, 550].entries()) {
       expect(tracker.update({ x: mirror(index % 2 ? 0.24 : 0.27), y: 0.5 }, time, 640, 480)).toBeNull()
     }
-    expect(tracker.update({ x: mirror(0.27), y: 0.5 }, 730, 640, 480)).toBe(direction)
+    expect(tracker.update({ x: mirror(0.27), y: 0.5 }, 560, 640, 480)).toBe(direction)
     expect(tracker.guide).toBe(`repeating-${direction}`)
-    expect(hold(tracker, mirror(0.27), 730, 1379)).toEqual([])
-    expect(tracker.update({ x: mirror(0.27), y: 0.5 }, 1380, 640, 480)).toBe(direction)
-    expect(tracker.update({ x: mirror(0.31), y: 0.5 }, 1450, 640, 480)).toBeNull()
-    expect(hold(tracker, mirror(0.24), 1450, 2500)).toEqual([])
+    expect(hold(tracker, mirror(0.27), 560, 959)).toEqual([])
+    expect(tracker.update({ x: mirror(0.27), y: 0.5 }, 960, 640, 480)).toBe(direction)
+    expect(tracker.update({ x: mirror(0.31), y: 0.5 }, 1030, 640, 480)).toBeNull()
+    expect(hold(tracker, mirror(0.24), 1030, 2500)).toEqual([])
   })
 
   test.each(sides)("$direction：延后进入侧边时才开始计算停留", ({ direction, side, short }) => {
@@ -301,8 +303,8 @@ describe("停留连翻", () => {
     expect(hold(tracker, short, 280, 700)).toEqual([])
     expect(tracker.update({ x: side, y: 0.5 }, 770, 640, 480)).toBeNull()
     expect(tracker.guide).toBe(`holding-${direction}`)
-    expect(hold(tracker, side, 770, 1219)).toEqual([])
-    expect(tracker.update({ x: side, y: 0.5 }, 1220, 640, 480)).toBe(direction)
+    expect(hold(tracker, side, 770, 1049)).toEqual([])
+    expect(tracker.update({ x: side, y: 0.5 }, 1050, 640, 480)).toBe(direction)
   })
 
   test.each(sides)("$direction：只把手伸入边缘不会翻页", ({ side }) => {
@@ -327,40 +329,40 @@ describe("停留连翻", () => {
 
   test.each(sides)("$direction：移出侧边缓冲区立即取消，再入侧边或经过另一侧不翻页", ({ direction, side, outside, opposite }) => {
     const tracker = swipe(direction, side)
-    expect(hold(tracker, side, 280, 729)).toEqual([])
-    expect(tracker.update({ x: outside, y: 0.5 }, 730, 640, 480)).toBeNull()
+    expect(hold(tracker, side, 280, 559)).toEqual([])
+    expect(tracker.update({ x: outside, y: 0.5 }, 560, 640, 480)).toBeNull()
     expect(tracker.guide).toBe("returning")
-    expect(hold(tracker, side, 730, 1500)).toEqual([])
+    expect(hold(tracker, side, 560, 1500)).toEqual([])
     expect(hold(tracker, opposite, 1500, 2500)).toEqual([])
   })
 
   test.each(sides)("$direction：连翻开始后收手也会取消", ({ direction, side, outside }) => {
     const tracker = swipe(direction, side)
-    expect(hold(tracker, side, 280, 730)).toEqual([direction])
+    expect(hold(tracker, side, 280, 560)).toEqual([direction])
     expect(tracker.update({ x: outside, y: 0.5 }, 800, 640, 480)).toBeNull()
     expect(hold(tracker, side, 800, 2500)).toEqual([])
   })
 
   test.each(sides)("$direction：漏一帧就取消待连翻，恢复后不续翻", ({ direction, side }) => {
     const tracker = swipe(direction, side)
-    expect(hold(tracker, side, 280, 680)).toEqual([])
-    expect(tracker.update(null, 730, 640, 480)).toBeNull()
-    expect(hold(tracker, side, 730, 2500)).toEqual([])
+    expect(hold(tracker, side, 280, 500)).toEqual([])
+    expect(tracker.update(null, 560, 640, 480)).toBeNull()
+    expect(hold(tracker, side, 560, 2500)).toEqual([])
   })
 
-  test.each(sides)("$direction：帧间隔超过 150ms 后不补翻", ({ direction, side }) => {
+  test.each(sides)("$direction：帧间隔超过 250ms 后不补翻", ({ direction, side }) => {
     const tracker = swipe(direction, side)
-    expect(hold(tracker, side, 280, 680)).toEqual([])
-    expect(tracker.update({ x: side, y: 0.5 }, 831, 640, 480)).toBeNull()
-    expect(hold(tracker, side, 831, 2500)).toEqual([])
+    expect(hold(tracker, side, 280, 500)).toEqual([])
+    expect(tracker.update({ x: side, y: 0.5 }, 800, 640, 480)).toBeNull()
+    expect(hold(tracker, side, 800, 2500)).toEqual([])
   })
 
   test("到期帧稍晚时，从实际翻页帧重新计算下次间隔", () => {
     const tracker = swipe("left", 0.25)
-    expect(hold(tracker, 0.25, 280, 680)).toEqual([])
-    expect(tracker.update({ x: 0.25, y: 0.5 }, 780, 640, 480)).toBe("left")
-    expect(hold(tracker, 0.25, 780, 1429)).toEqual([])
-    expect(tracker.update({ x: 0.25, y: 0.5 }, 1430, 640, 480)).toBe("left")
+    expect(hold(tracker, 0.25, 280, 500)).toEqual([])
+    expect(tracker.update({ x: 0.25, y: 0.5 }, 620, 640, 480)).toBe("left")
+    expect(hold(tracker, 0.25, 620, 1019)).toEqual([])
+    expect(tracker.update({ x: 0.25, y: 0.5 }, 1020, 640, 480)).toBe("left")
   })
 
   test.each(["single", "repeat"] as const)("切换到 %s 模式后，清空待连翻并要求重新居中", (mode) => {

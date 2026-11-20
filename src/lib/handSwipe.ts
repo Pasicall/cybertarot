@@ -7,12 +7,12 @@ type Point = { x: number; y: number }
 type Sample = Point & { time: number }
 
 const PALM_INDICES = [0, 5, 9, 13, 17]
-const CENTER_SETTLE_MS = 100
-const RETURN_SETTLE_MS = 180
-const RETURN_CENTER_RADIUS = 0.06
-const TRACKING_GRACE_MS = 150
-const REPEAT_HOLD_MS = 450
-const REPEAT_INTERVAL_MS = 650
+const CENTER_SETTLE_MS = 80
+const RETURN_SETTLE_MS = 150
+const RETURN_CENTER_RADIUS = 0.08
+const TRACKING_GRACE_MS = 250
+const REPEAT_HOLD_MS = 280
+const REPEAT_INTERVAL_MS = 400
 const SIDE_ENTER_DISTANCE = 0.25
 const SIDE_EXIT_DISTANCE = 0.22
 const POSITION_EPSILON = 1e-6
@@ -142,7 +142,7 @@ export class HandSwipeTracker {
         this.centerSamples.shift()
       }
       const xs = this.centerSamples.map((point) => point.x)
-      if (Math.max(...xs) - Math.min(...xs) >= (returning ? 0.015 : 0.03)) {
+      if (Math.max(...xs) - Math.min(...xs) >= (returning ? 0.015 : 0.04)) {
         this.centerSamples = [sample]
         return null
       }
@@ -155,13 +155,13 @@ export class HandSwipeTracker {
       return null
     }
 
-    this.samples = this.samples.filter((point) => time - point.time <= 400)
+    this.samples = this.samples.filter((point) => time - point.time <= 500)
     this.samples.push(sample)
     if (this.samples.length < 3) return null
     const dx = palm.x - this.samples[0].x
     const dy = palm.y - this.samples[0].y
-    if (Math.abs(dx) > 0.14 + POSITION_EPSILON
-      && Math.abs(dx) * width + POSITION_EPSILON >= 1.5 * Math.abs(dy) * height) {
+    if (Math.abs(dx) > 0.11 + POSITION_EPSILON
+      && Math.abs(dx) * width + POSITION_EPSILON >= 1.25 * Math.abs(dy) * height) {
       const returnCenterX = this.samples[0].x
       this.reset()
       this.returnCenterX = returnCenterX

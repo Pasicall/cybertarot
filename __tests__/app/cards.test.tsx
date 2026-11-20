@@ -37,6 +37,9 @@ beforeEach(() => {
 
 function setupGallery() {
   render(<HomePage />)
+  // 开场屏在非 reduced-motion 下会先展示，进入画廊前先点「开始」。
+  const start = screen.queryByRole("button", { name: "开始" })
+  if (start) fireEvent.click(start)
   return {
     viewport: screen.getByRole("region", { name: "塔罗牌画廊" }),
     previous: screen.getByRole("button", { name: /上一张/ }),

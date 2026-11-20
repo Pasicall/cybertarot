@@ -208,6 +208,18 @@ body {
 
 .gallery-footer {
   padding: 20px 24px 18px;
+  animation: footer-rise 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes footer-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .gallery-controls {
@@ -518,4 +530,155 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .gallery-footer,
+  .card-ring {
+    animation: none;
+  }
+}
+
+/* ===== 开场屏 ===== */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 42%, rgb(10 10 26 / 55%), rgb(10 10 26 / 88%) 78%);
+}
+
+.intro-cards {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.intro-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(52px, 8vw, 92px);
+  aspect-ratio: 497 / 700;
+  transform: translate(-50%, -50%)
+    translate(var(--tx, 0), var(--ty, 0))
+    rotate(var(--rot, 0deg))
+    scale(var(--sc, 1));
+  border-radius: 5px;
+  background: #15192c;
+  box-shadow: 0 8px 20px rgb(0 0 0 / 42%);
+  /* 只过渡 transform/opacity（合成器属性），width 恒定 — 避免逐帧 reflow 卡顿 */
+  transition:
+    transform 750ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 600ms ease 300ms;
+  transition-delay: var(--fly-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+/* 目标环轨迹 — 位置与 CardRing .card-ring-track 对齐 */
+.intro-ring-track {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(76vw, 900px);
+  height: min(30vh, 380px);
+  transform: translate(-50%, -50%);
+  border: 1px solid rgb(0 240 255 / 18%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(0 240 255 / 4%), transparent 70%);
+  box-shadow: 0 0 40px rgb(0 240 255 / 8%), inset 0 0 20px rgb(0 240 255 / 4%);
+  pointer-events: none;
+  transition: opacity 600ms ease;
+}
+
+.intro--exiting {
+  pointer-events: none;
+}
+
+.intro--exiting .intro-ring-track {
+  opacity: 0;
+}
+
+.intro--exiting .intro-card {
+  /* 有 JS measure 的精确坐标时优先使用，否则退回 slot 近似计算。
+     尺寸对齐走 scale（合成器），width 恒定不参与过渡 */
+  transform: translate(-50%, -50%)
+    translate(
+      var(--exit-tx, calc(var(--slot-x) * 38vw)),
+      var(--exit-ty, calc(var(--slot-y) * 16vh))
+    )
+    rotate(0deg)
+    scale(var(--exit-sc, var(--slot-sc, 1)));
+  opacity: 1;
+}
+
+/* 牌逐一飞到环上后，最后一轮牌抵达后整体渐隐 */
+.intro--exiting .intro-cards {
+  transition: opacity 400ms ease 1300ms;
+  opacity: 0;
+}
+
+.intro-card-image {
+  border-radius: inherit;
+  object-fit: contain;
+}
+
+.intro-foreground {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+
+.intro--exiting .intro-foreground {
+  opacity: 0;
+  transform: translateY(-12px);
+}
+
+.intro-brand {
+  color: #00f0ff;
+  font-family: var(--font-heading);
+  font-size: 11px;
+  letter-spacing: 0.5em;
+}
+
+.intro-title {
+  font-family: var(--font-serif-cn);
+  font-size: clamp(38px, 7vw, 68px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #f2f2f8;
+  text-shadow: 0 0 24px rgb(0 240 255 / 25%);
+}
+
+.intro-sub {
+  color: #a5a5bd;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+}
+
+.intro-start {
+  margin-top: 16px;
+  min-height: 48px;
+  padding: 0 40px;
+  border: 1px solid #00f0ff;
+  border-radius: 8px;
+  background: rgb(0 240 255 / 10%);
+  color: #cff8fc;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  transition: background 180ms, box-shadow 180ms;
+}
+
+.intro-start:hover {
+  background: rgb(0 240 255 / 18%);
+  box-shadow: 0 0 18px rgb(0 240 255 / 35%);
 }

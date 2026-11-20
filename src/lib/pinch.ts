@@ -10,7 +10,8 @@ export type PinchControls = {
 
 export const INITIAL_PINCH: PinchFeedback = { phase: "waiting-open", progress: 0, target: null }
 const OPEN_RATIO = 0.45
-const CLOSED_RATIO = 0.25
+/* 0.28：侧对摄像头时掌宽像素偏小、ratio 虚高，放宽闭合阈值保证侧身也能捏合 */
+const CLOSED_RATIO = 0.28
 const CONFIRM_MS = 250
 export const PINCH_TRACKING_GRACE_MS = 150
 

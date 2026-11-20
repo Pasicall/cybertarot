@@ -24,6 +24,17 @@ type Drag = {
   moved: boolean
 }
 
+export type IntroCardData = {
+  id: string
+  src: string
+  slotIndex: number
+  tx: string
+  ty: string
+  rot: number
+  scale: number
+  flyDelay: string
+}
+
 type CardRingProps = {
   position: number
   showBacks: boolean
@@ -33,9 +44,11 @@ type CardRingProps = {
   onSelect: (slot: number) => void
   onInteractionChange?: (active: boolean) => void
   pinchProgress?: number | null
+  introCards?: IntroCardData[]
+  introExiting?: boolean
 }
 
-export default function CardRing({ position, showBacks, onDrag, onSnap, onWheel, onSelect, onInteractionChange, pinchProgress = null }: CardRingProps) {
+export default function CardRing({ position, showBacks, onDrag, onSnap, onWheel, onSelect, onInteractionChange, pinchProgress = null, introCards, introExiting }: CardRingProps) {
   const ringRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<Drag | null>(null)
   const suppressClickRef = useRef(false)

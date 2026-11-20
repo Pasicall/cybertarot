@@ -12,8 +12,14 @@ import { samePinchTarget } from "@/lib/pinch"
 import type { PinchContext, PinchTarget } from "@/lib/pinch"
 
 const SNAP_DURATION_MS = 240
+// Repeat mode steps every 400ms; a longer, near-linear glide keeps the ring
+// flowing instead of stopping dead between cards.
+const REPEAT_SNAP_DURATION_MS = 340
 const WHEEL_IDLE_MS = 150
 const NARROW_GALLERY_QUERY = "(max-width: 767px)"
+
+const easeOutCubic = (t: number) => 1 - (1 - t) ** 3
+const easeOutSine = (t: number) => Math.sin((t * Math.PI) / 2)
 
 const gestureHints: Record<SwipeGuide, string> = {
   searching: "请举起一只手，让摄像头看到手掌",
@@ -71,7 +77,7 @@ export default function CardGallery() {
     wheelTimerRef.current = null
   }, [])
 
-  const goTo = useCallback((target: number, immediate = false) => {
+  const goTo = useCallback((target: number, immediate = false, duration = SNAP_DURATION_MS, easing = easeOutCubic) => {
     interactionRevision.current += 1
     cancelMotion()
     targetRef.current = target
@@ -84,22 +90,27 @@ export default function CardGallery() {
 
     const startedAt = performance.now()
     function animate(now: number) {
-      const progress = Math.max(0, (now - startedAt) / SNAP_DURATION_MS)
+      const progress = Math.max(0, (now - startedAt) / duration)
       if (progress >= 1 || reducedMotion.matches) {
         frameRef.current = null
         updatePosition(target)
         return
       }
 
-      const eased = 1 - (1 - progress) ** 3
+      const eased = easing(progress)
       updatePosition(from + (target - from) * eased)
       frameRef.current = requestAnimationFrame(animate)
     }
     frameRef.current = requestAnimationFrame(animate)
   }, [cancelMotion, updatePosition])
 
-  const step = useCallback((direction: -1 | 1) => {
-    goTo(targetRef.current + direction, mode === "detail")
+  const step = useCallback((direction: -1 | 1, repeating = false) => {
+    goTo(
+      targetRef.current + direction,
+      mode === "detail",
+      repeating ? REPEAT_SNAP_DURATION_MS : SNAP_DURATION_MS,
+      repeating ? easeOutSine : easeOutCubic,
+    )
   }, [goTo, mode])
 
   const rotateTo = useCallback((next: number) => {
@@ -150,8 +161,8 @@ export default function CardGallery() {
     if (active) interactionRevision.current += 1
   }, [])
 
-  const onSwipe = useCallback((direction: SwipeDirection) => {
-    step(direction === "left" ? 1 : -1)
+  const onSwipe = useCallback((direction: SwipeDirection, repeating = false) => {
+    step(direction === "left" ? 1 : -1, repeating)
   }, [step])
   const { videoRef, status: gestureStatus, guide, error: gestureError, pinch, start, stop } = useHandSwipe(onSwipe, swipeMode, pinchControls)
   const gestureEnabled = gestureStatus === "starting" || gestureStatus === "running"

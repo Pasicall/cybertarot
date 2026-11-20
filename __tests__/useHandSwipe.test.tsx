@@ -87,7 +87,7 @@ async function startRepeat(direction: SwipeDirection = "left") {
   }
   expect(hook.onSwipe).toHaveBeenCalledTimes(1)
   expect(hook.result.current.guide).toBe(`holding-${direction}`)
-  for (const time of [350, 420, 490, 560, 630, 700]) sampleFrame(hook.video, time, mirror(0.25))
+  for (const time of [340, 410, 480, 550]) sampleFrame(hook.video, time, mirror(0.25))
   return { ...hook, stream, track }
 }
 
@@ -191,7 +191,7 @@ test.each(["ended", "pagehide", "unmount", "inference failure"])("%s 释放已�
   expect(frames.size).toBe(0)
 })
 
-test("识别视频帧被限制在约 15fps，并把镜像左挥传给画廊", async () => {
+test("识别视频帧被限制在约 20fps，并把镜像左挥传给画廊", async () => {
   const { stream } = camera()
   getUserMedia.mockResolvedValue(stream)
   const { result, video, onSwipe } = setup()
@@ -219,42 +219,43 @@ test("识别视频帧被限制在约 15fps，并把镜像左挥传给画廊", as
   sample(420, 0.1, false)
   expect(detector.detectForVideo).toHaveBeenCalledTimes(6)
   expect(onSwipe).toHaveBeenCalledTimes(1)
-  expect(onSwipe).toHaveBeenCalledWith("left")
+  expect(onSwipe).toHaveBeenCalledWith("left", false)
 })
 
 test.each(["left", "right"] as const)("%s 连翻由新视频帧推进，侧边回摆时保持一致", async (direction) => {
   const { video, result, onSwipe } = await startRepeat(direction)
   const mirror = (x: number) => direction === "left" ? x : 1 - x
-  sampleFrame(video, 770, mirror(0.27))
+  sampleFrame(video, 620, mirror(0.27))
   expect(onSwipe).toHaveBeenCalledTimes(2)
   expect(result.current.guide).toBe(`repeating-${direction}`)
-  for (const time of [840, 910, 980, 1050, 1120, 1190, 1260, 1330, 1400]) sampleFrame(video, time, mirror(0.27))
+  for (const time of [690, 760, 830, 900, 970]) sampleFrame(video, time, mirror(0.27))
   expect(onSwipe).toHaveBeenCalledTimes(2)
-  sampleFrame(video, 1470, mirror(0.27))
+  sampleFrame(video, 1050, mirror(0.27))
   expect(onSwipe).toHaveBeenCalledTimes(3)
-  expect(onSwipe.mock.calls).toEqual([[direction], [direction], [direction]])
-  for (const time of [1540, 1610, 1680, 1750]) sampleFrame(video, time, 0.5)
+  expect(onSwipe.mock.calls).toEqual([[direction, false], [direction, true], [direction, true]])
+  for (const time of [1120, 1190, 1260, 1330]) sampleFrame(video, time, 0.5)
   expect(result.current.guide).toBe("ready")
-  sampleFrame(video, 1820, mirror(0.4))
-  sampleFrame(video, 1890, mirror(0.24))
+  sampleFrame(video, 1400, mirror(0.4))
+  sampleFrame(video, 1470, mirror(0.24))
   expect(onSwipe).toHaveBeenCalledTimes(4)
-  for (const time of [1960, 2030, 2100, 2170, 2240, 2310, 2380]) sampleFrame(video, time, mirror(0.27))
+  for (const time of [1540, 1610, 1680, 1750]) sampleFrame(video, time, mirror(0.27))
   expect(onSwipe).toHaveBeenCalledTimes(5)
 })
 
 test.each(["收手", "丢手", "视频停帧"])("%s 会取消连翻，恢复后不会补翻或反向误触", async (reason) => {
   const { video, onSwipe } = await startRepeat()
   if (reason === "视频停帧") {
-    sampleFrame(video, 770, 0.25, false)
-    sampleFrame(video, 840, 0.25, false)
+    sampleFrame(video, 620, 0.25, false)
+    sampleFrame(video, 690, 0.25, false)
     expect(onSwipe).toHaveBeenCalledTimes(1)
-    sampleFrame(video, 910, 0.25)
+    // 恢复帧距上次有效识别 300ms，超过 250ms 容错，须重置
+    sampleFrame(video, 850, 0.25)
   } else {
-    sampleFrame(video, 770, reason === "丢手" ? null : 0.5)
-    sampleFrame(video, 840, 0.25)
-    sampleFrame(video, 910, 0.8)
+    sampleFrame(video, 620, reason === "丢手" ? null : 0.5)
+    sampleFrame(video, 690, 0.25)
+    sampleFrame(video, 760, 0.8)
   }
-  for (const time of [980, 1050, 1120, 1190, 1260, 1330, 1400, 1470]) sampleFrame(video, time, 0.25)
+  for (const time of [830, 900, 970, 1040, 1110, 1180, 1250, 1320]) sampleFrame(video, time, 0.25)
   expect(onSwipe).toHaveBeenCalledTimes(1)
 })
 
@@ -278,15 +279,15 @@ test("页面隐藏即清除连翻，不依赖后台动画帧；恢复后重新�
 test("运行中切换手势模式清空轨迹和计时，复用当前摄像头", async () => {
   const { video, result, onSwipe, rerender, stream, track } = await startRepeat()
   act(() => rerender({ mode: "single" }))
-  sampleFrame(video, 770, 0.2)
+  sampleFrame(video, 620, 0.2)
   expect(result.current.guide).toBe("centering")
   act(() => rerender({ mode: "repeat" }))
-  for (const time of [840, 910, 980, 1050, 1120, 1190, 1260, 1330, 1400]) sampleFrame(video, time, 0.2)
+  for (const time of [690, 760, 830, 900, 970, 1040, 1110, 1180, 1250]) sampleFrame(video, time, 0.2)
   expect(onSwipe).toHaveBeenCalledTimes(1)
-  for (const time of [1470, 1540, 1610]) sampleFrame(video, time, 0.5)
+  for (const time of [1320, 1390, 1460]) sampleFrame(video, time, 0.5)
   expect(result.current.guide).toBe("ready")
-  sampleFrame(video, 1680, 0.4)
-  sampleFrame(video, 1750, 0.25)
+  sampleFrame(video, 1530, 0.4)
+  sampleFrame(video, 1600, 0.25)
   expect(onSwipe).toHaveBeenCalledTimes(2)
   expect(video.srcObject).toBe(stream)
   expect(getUserMedia).toHaveBeenCalledTimes(1)
@@ -352,7 +353,7 @@ test("同帧捏合到期与挥手冲突时只派发翻页", async () => {
   const { video, result, onSwipe, onConfirm } = await startPinch()
   for (const time of [210, 280, 350, 420]) sampleFrame(video, time, 0.5, true, 0.2)
   sampleFrame(video, 490, 0.34, true, 0.2)
-  expect(onSwipe).toHaveBeenCalledWith("left")
+  expect(onSwipe).toHaveBeenCalledWith("left", false)
   expect(onConfirm).not.toHaveBeenCalled()
   expect(result.current.pinch.progress).toBe(0)
 })

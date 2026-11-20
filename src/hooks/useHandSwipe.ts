@@ -48,7 +48,7 @@ function cameraError(error: unknown) {
   }
 }
 
-export function useHandSwipe(onSwipe: (direction: SwipeDirection) => void, swipeMode: SwipeMode = "single", pinchControls?: PinchControls) {
+export function useHandSwipe(onSwipe: (direction: SwipeDirection, repeating?: boolean) => void, swipeMode: SwipeMode = "single", pinchControls?: PinchControls) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const sessionRef = useRef<Session | null>(null)
   const onSwipeRef = useRef(onSwipe)
@@ -192,7 +192,7 @@ export function useHandSwipe(onSwipe: (direction: SwipeDirection) => void, swipe
             tracker.reset()
             pinchTracker.reset()
           }
-          else if (now - lastSample >= 1000 / 15 && video.readyState >= 2
+          else if (now - lastSample >= 1000 / 20 && video.readyState >= 2
             && video.currentTime !== lastVideoTime) {
             lastSample = now
             lastVideoTime = video.currentTime
@@ -204,13 +204,14 @@ export function useHandSwipe(onSwipe: (direction: SwipeDirection) => void, swipe
             )
             if (direction) {
               pinchTracker.reset()
-              onSwipeRef.current(direction)
+              // Repeat-driven frames keep the ring flowing at a steady pace.
+              onSwipeRef.current(direction, tracker.guide === `repeating-${direction}`)
             } else {
               if (controls && context) {
                 const confirmed = pinchTracker.update({
                   ratio: getPinchRatio(points, video.videoWidth, video.videoHeight), palm, time: now,
                   target: context.target,
-                  canStart: tracker.guide === "ready" && !!palm && palm.x >= 0.25 && palm.x <= 0.75 && context.settled,
+                  canStart: tracker.guide === "ready" && !!palm && palm.x >= 0.2 && palm.x <= 0.8 && context.settled,
                 })
                 if (confirmed) {
                   const latest = controls.getContext()
